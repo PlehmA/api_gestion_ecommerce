@@ -5,21 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @OA\Schema(
- *     schema="Order",
- *     type="object",
- *     @OA\Property(property="id", type="integer"),
- *     @OA\Property(property="user_id", type="integer"),
- *     @OA\Property(property="address_id", type="integer"),
- *     @OA\Property(property="invoice_id", type="integer"),
- *     @OA\Property(property="total", type="number", format="float"),
- *     @OA\Property(property="status", type="string"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
- */
-class Order extends Model
+
 /**
  * @OA\Schema(
  *     schema="Order",
@@ -38,6 +24,7 @@ class Order extends Model
  *     @OA\Property(property="invoice", ref="#/components/schemas/Invoice")
  * )
  */
+class Order extends Model 
 {
     use HasFactory;
 

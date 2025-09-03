@@ -39,10 +39,55 @@
 
 ### Endpoints principales
 
+#### Autenticación
+- **Registrar usuario:** `POST /api/register`
+- **Iniciar sesión:** `POST /api/login`
+- **Cerrar sesión:** `POST /api/logout` (requiere autenticación)
+- **Obtener usuario:** `GET /api/user` (requiere autenticación)
+- **Cerrar todas las sesiones:** `POST /api/logout-all` (requiere autenticación)
+
+#### Productos
+- **Listar productos:** `GET /api/products`
+- **Ver producto:** `GET /api/products/{id}`
+
+#### Órdenes (requieren autenticación)
+- **Listar órdenes:** `GET /api/orders`
 - **Crear orden:** `POST /api/orders`
 - **Ver detalle de orden:** `GET /api/orders/{id}`
+- **Estadísticas:** `GET /api/orders/stats`
 
-Requiere autenticación con Sanctum.
+### Autenticación
+
+La API utiliza Laravel Sanctum para autenticación por tokens Bearer.
+
+#### Ejemplo de registro:
+```json
+POST /api/register
+{
+  "name": "Juan Pérez",
+  "email": "juan@example.com",
+  "password": "password123",
+  "password_confirmation": "password123"
+}
+```
+
+#### Ejemplo de login:
+```json
+POST /api/login
+{
+  "email": "juan@example.com",
+  "password": "password123"
+}
+```
+
+#### Usar el token:
+```bash
+Authorization: Bearer 1|token_aquí
+```
+
+### Usuario de prueba
+- **Email:** `demo@example.com`
+- **Password:** `password123`
 
 ## Documentación de la API
 
@@ -76,11 +121,26 @@ php artisan test
 
 ## Extras implementados
 
-- Documentación OpenAPI (Swagger)
-- Uso de caché en consulta de órdenes
-- Jobs para notificación por email
-- Policies, Requests, Traits, Services
-- Tests unitarios y de integración
+- **Documentación OpenAPI (Swagger)** - Accesible en `/api/documentation`
+- **Uso de caché** - Implementado en múltiples niveles:
+  - Caché de órdenes individuales (60 segundos)
+  - Caché de productos (600 segundos para productos individuales, 300 para listas)
+  - Caché de estadísticas de órdenes (1800 segundos)
+  - Caché de órdenes por usuario (300 segundos)
+  - Invalidación automática al crear/actualizar recursos
+- **Jobs para notificación por email** - Job async para envío de emails
+- **Policies, Requests, Traits, Services** - Arquitectura bien estructurada
+- **Tests unitarios y de integración** - Cobertura de funcionalidades principales
+- **Middleware de invalidación de caché** - Limpieza automática de caché
+
+### Configuración de Caché
+
+El sistema utiliza diferentes TTL (Time To Live) para optimizar rendimiento:
+
+- **Productos**: 10 minutos (individual), 5 minutos (lista)
+- **Órdenes**: 1 minuto (individual), 5 minutos (por usuario)
+- **Estadísticas**: 30 minutos
+- **Configuración**: Sin expiración (manual)
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

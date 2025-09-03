@@ -19,36 +19,58 @@ use Illuminate\Support\Facades\Gate;
 
 class OrderController extends Controller
 {
-        /**
-         * @OA\Post(
-         *     path="/api/orders",
-         *     summary="Crear una nueva orden",
-         *     tags={"Orders"},
-         *     security={{"sanctum":{}}},
-         *     @OA\RequestBody(
-         *         required=true,
-         *         @OA\JsonContent(
-         *             required={"user_id","address_id","products"},
-         *             @OA\Property(property="user_id", type="integer"),
-         *             @OA\Property(property="address_id", type="integer"),
-         *             @OA\Property(
-         *                 property="products",
-         *                 type="array",
-         *                 @OA\Items(
-         *                     @OA\Property(property="id", type="integer"),
-         *                     @OA\Property(property="quantity", type="integer")
-         *                 )
-         *             )
-         *         )
-         *     ),
-         *     @OA\Response(
-         *         response=201,
-         *         description="Orden creada",
-         *         @OA\JsonContent(ref="#/components/schemas/Order")
-         *     ),
-         *     @OA\Response(response=422, description="Datos inválidos")
-         * )
-         */
+    /**
+     * @OA\Get(
+     *     path="/api/orders",
+     *     summary="Obtener órdenes del usuario autenticado",
+     *     tags={"Orders"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de órdenes",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Order")
+     *         )
+     *     )
+     * )
+     */
+    public function index(Request $request, OrderService $orderService)
+    {
+        $orders = $orderService->getUserOrders($request->user()->id);
+        return response()->json($orders);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/orders",
+     *     summary="Crear una nueva orden",
+     *     tags={"Orders"},
+     *     security={{"sanctum":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"user_id","address_id","products"},
+     *             @OA\Property(property="user_id", type="integer"),
+     *             @OA\Property(property="address_id", type="integer"),
+     *             @OA\Property(
+     *                 property="products",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer"),
+     *                     @OA\Property(property="quantity", type="integer")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Orden creada",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(response=422, description="Datos inválidos")
+     * )
+     */
     public function store(StoreOrderRequest $request, OrderService $orderService)
     {
         $order = $orderService->createOrder($request->validated());
@@ -82,5 +104,30 @@ class OrderController extends Controller
         });
         Gate::authorize('view', $order);
         return response()->json($order);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/orders/stats",
+     *     summary="Obtener estadísticas de órdenes",
+     *     tags={"Orders"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Estadísticas de órdenes",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="total_orders", type="integer"),
+     *             @OA\Property(property="pending_orders", type="integer"),
+     *             @OA\Property(property="completed_orders", type="integer"),
+     *             @OA\Property(property="total_revenue", type="number", format="float")
+     *         )
+     *     )
+     * )
+     */
+    public function stats(OrderService $orderService)
+    {
+        $stats = $orderService->getOrderStats();
+        return response()->json($stats);
     }
 }

@@ -9,8 +9,8 @@ return new class extends Migration {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('address_id')->nullable()->constrained('addresses')->onDelete('set null');
-            $table->foreignId('invoice_id')->nullable()->constrained('invoices')->onDelete('set null');
+            $table->unsignedBigInteger('address_id')->nullable();
+            $table->unsignedBigInteger('invoice_id')->nullable();
             $table->decimal('total', 10, 2);
             $table->string('status')->default('pending');
             $table->timestamps();
