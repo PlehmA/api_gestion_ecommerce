@@ -89,19 +89,15 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        // Crear cache key único basado en usuario y parámetros de consulta
-        $cacheKey = 'orders_user_' . $request->user()->id . '_' . md5($request->getQueryString() ?: 'default');
-        
-        $orders = Cache::remember($cacheKey, 300, function () use ($request) {
-            return QueryBuilder::for(Order::class)
-                ->where('user_id', $request->user()->id)
-                ->with(['products', 'address', 'invoice'])
+        // TEMPORAL: Para debug, agregar parámetro para ver todas las órdenes
+        if ($request->has('debug') && $request->debug === 'all') {
+            $orders = QueryBuilder::for(Order::class)
+                ->with(['products', 'address'])
                 ->allowedFilters([
                     AllowedFilter::exact('status'),
+                    AllowedFilter::exact('user_id'),
                     AllowedFilter::scope('min_total'),
                     AllowedFilter::scope('max_total'),
-                    AllowedFilter::scope('date_from'),
-                    AllowedFilter::scope('date_to'),
                 ])
                 ->allowedSorts([
                     'created_at',
@@ -109,10 +105,61 @@ class OrderController extends Controller
                     'status',
                     'updated_at'
                 ])
-                ->defaultSort('-created_at')
-                ->paginate($request->get('per_page', 15))
-                ->withQueryString();
-        });
+                ->paginate($request->input('per_page', 15))
+                ->appends($request->query());
+            
+            return response()->json($orders);
+        }
+        
+        // Comportamiento normal: solo órdenes del usuario autenticado
+        $cacheKey = 'orders_user_' . $request->user()->id . '_' . md5($request->getQueryString() ?: 'default');
+        
+        // Usar cache tagging si Redis está disponible
+        if (config('cache.default') === 'redis') {
+            $orders = Cache::tags(['orders', 'user_' . $request->user()->id])->remember($cacheKey, 300, function () use ($request) {
+                return QueryBuilder::for(Order::class)
+                    ->where('user_id', $request->user()->id)
+                    ->with(['products', 'address', 'invoice'])
+                    ->allowedFilters([
+                        AllowedFilter::exact('status'),
+                        AllowedFilter::scope('min_total'),
+                        AllowedFilter::scope('max_total'),
+                        AllowedFilter::scope('date_from'),
+                        AllowedFilter::scope('date_to'),
+                    ])
+                    ->allowedSorts([
+                        'created_at',
+                        'total', 
+                        'status',
+                        'updated_at'
+                    ])
+                    ->defaultSort('-created_at')
+                    ->paginate($request->get('per_page', 15))
+                    ->withQueryString();
+            });
+        } else {
+            $orders = Cache::remember($cacheKey, 300, function () use ($request) {
+                return QueryBuilder::for(Order::class)
+                    ->where('user_id', $request->user()->id)
+                    ->with(['products', 'address', 'invoice'])
+                    ->allowedFilters([
+                        AllowedFilter::exact('status'),
+                        AllowedFilter::scope('min_total'),
+                        AllowedFilter::scope('max_total'),
+                        AllowedFilter::scope('date_from'),
+                        AllowedFilter::scope('date_to'),
+                    ])
+                    ->allowedSorts([
+                        'created_at',
+                        'total', 
+                        'status',
+                        'updated_at'
+                    ])
+                    ->defaultSort('-created_at')
+                    ->paginate($request->get('per_page', 15))
+                    ->withQueryString();
+            });
+        }
         
         return response()->json($orders);
     }
@@ -205,5 +252,26 @@ class OrderController extends Controller
     {
         $stats = $orderService->getOrderStats();
         return response()->json($stats);
+    }
+
+    /**
+     * TEMPORAL: Método de debug para verificar órdenes en la DB
+     * ELIMINAR EN PRODUCCIÓN
+     */
+    public function debugOrders()
+    {
+        return response()->json([
+            'total_orders_in_db' => Order::count(),
+            'orders_by_user' => Order::selectRaw('user_id, COUNT(*) as count')
+                ->groupBy('user_id')
+                ->get(),
+            'recent_orders' => Order::with(['products', 'address'])
+                ->latest()
+                ->limit(5)
+                ->get(),
+            'all_orders_simple' => Order::select('id', 'user_id', 'status', 'total', 'created_at')
+                ->latest()
+                ->get()
+        ]);
     }
 }

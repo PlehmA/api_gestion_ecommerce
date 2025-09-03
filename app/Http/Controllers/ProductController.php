@@ -55,6 +55,41 @@ class ProductController extends Controller
      *         example=1
      *     ),
      *     @OA\Parameter(
+     *         name="name",
+     *         in="query",
+     *         description="Sintaxis alternativa: filtrar por nombre (búsqueda parcial)",
+     *         @OA\Schema(type="string"),
+     *         example="smart"
+     *     ),
+     *     @OA\Parameter(
+     *         name="price",
+     *         in="query", 
+     *         description="Sintaxis alternativa: filtrar por precio exacto",
+     *         @OA\Schema(type="number", format="float"),
+     *         example=999.99
+     *     ),
+     *     @OA\Parameter(
+     *         name="min_price",
+     *         in="query",
+     *         description="Sintaxis alternativa: precio mínimo",
+     *         @OA\Schema(type="number", format="float"),
+     *         example=500.00
+     *     ),
+     *     @OA\Parameter(
+     *         name="max_price", 
+     *         in="query",
+     *         description="Sintaxis alternativa: precio máximo",
+     *         @OA\Schema(type="number", format="float"),
+     *         example=2000.00
+     *     ),
+     *     @OA\Parameter(
+     *         name="in_stock",
+     *         in="query",
+     *         description="Sintaxis alternativa: solo productos en stock (1 ó 0)",
+     *         @OA\Schema(type="integer", enum={0, 1}),
+     *         example=1
+     *     ),
+     *     @OA\Parameter(
      *         name="sort",
      *         in="query",
      *         description="Campo de ordenamiento. Usar '-' al inicio para orden descendente",
@@ -92,27 +127,53 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
+        // Convertir parámetros directos a formato filter para mayor flexibilidad
+        $this->convertDirectParamsToFilters($request);
+        
         // Crear cache key único basado en todos los parámetros de consulta
         $cacheKey = 'products_filtered_' . md5($request->getQueryString() ?: 'default');
         
-        $products = Cache::remember($cacheKey, 300, function () use ($request) {
-            return QueryBuilder::for(Product::class)
-                ->allowedFilters([
-                    AllowedFilter::partial('name'),
-                    AllowedFilter::exact('price'),
-                    AllowedFilter::scope('min_price'),
-                    AllowedFilter::scope('max_price'),
-                    AllowedFilter::scope('in_stock'),
-                ])
-                ->allowedSorts([
-                    'name',
-                    'price', 
-                    'stock',
-                    'created_at'
-                ])
-                ->paginate($request->input('per_page', 15))
-                ->appends($request->query());
-        });
+        // Si tenemos Redis, usar cache con tags
+        if (config('cache.default') === 'redis') {
+            $products = Cache::tags(['products'])->remember($cacheKey, 300, function () use ($request) {
+                return QueryBuilder::for(Product::class)
+                    ->allowedFilters([
+                        AllowedFilter::partial('name'),
+                        AllowedFilter::exact('price'),
+                        AllowedFilter::scope('min_price'),
+                        AllowedFilter::scope('max_price'),
+                        AllowedFilter::scope('in_stock'),
+                    ])
+                    ->allowedSorts([
+                        'name',
+                        'price', 
+                        'stock',
+                        'created_at'
+                    ])
+                    ->paginate($request->input('per_page', 15))
+                    ->appends($request->query());
+            });
+        } else {
+            // Fallback para drivers sin tagging
+            $products = Cache::remember($cacheKey, 300, function () use ($request) {
+                return QueryBuilder::for(Product::class)
+                    ->allowedFilters([
+                        AllowedFilter::partial('name'),
+                        AllowedFilter::exact('price'),
+                        AllowedFilter::scope('min_price'),
+                        AllowedFilter::scope('max_price'),
+                        AllowedFilter::scope('in_stock'),
+                    ])
+                    ->allowedSorts([
+                        'name',
+                        'price', 
+                        'stock',
+                        'created_at'
+                    ])
+                    ->paginate($request->input('per_page', 15))
+                    ->appends($request->query());
+            });
+        }
         
         return response()->json($products);
     }
@@ -147,9 +208,16 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        $product = Cache::remember("product_{$id}", 600, function () use ($id) {
-            return Product::findOrFail($id);
-        });
+        // Cache con tagging si Redis está disponible
+        if (config('cache.default') === 'redis') {
+            $product = Cache::tags(['products'])->remember("product_{$id}", 600, function () use ($id) {
+                return Product::findOrFail($id);
+            });
+        } else {
+            $product = Cache::remember("product_{$id}", 600, function () use ($id) {
+                return Product::findOrFail($id);
+            });
+        }
         
         return response()->json($product);
     }
@@ -194,8 +262,13 @@ class ProductController extends Controller
         
         // Invalidar cache de productos
         Cache::forget('products.all');
-        // Invalidar cache de productos filtrados (limpiar todos los filtros)
-        $this->clearProductsCache();
+        // Con Redis, podemos usar cache tagging
+        if (config('cache.default') === 'redis') {
+            Cache::tags(['products'])->flush();
+        } else {
+            // Fallback para drivers que no soportan tagging
+            $this->clearProductsCache();
+        }
         
         return response()->json([
             'message' => 'Producto creado exitosamente',
@@ -260,8 +333,13 @@ class ProductController extends Controller
         // Invalidar cache del producto específico y general
         Cache::forget("product_{$id}");
         Cache::forget('products.all');
-        // Invalidar cache de productos filtrados
-        $this->clearProductsCache();
+        // Con Redis, podemos usar cache tagging
+        if (config('cache.default') === 'redis') {
+            Cache::tags(['products'])->flush();
+        } else {
+            // Fallback para drivers que no soportan tagging
+            $this->clearProductsCache();
+        }
         
         return response()->json([
             'message' => 'Producto actualizado exitosamente',
@@ -491,11 +569,21 @@ class ProductController extends Controller
 
     /**
      * Limpiar cache de productos filtrados
-     * Como no podemos usar tags con el driver file, eliminamos los caches comunes
+     * Usa cache tagging si está disponible (Redis), sino fallback manual
      */
     private function clearProductsCache()
     {
-        // Limpiar algunos caches comunes de filtros
+        // Si tenemos Redis, podemos usar cache tagging
+        if (config('cache.default') === 'redis') {
+            try {
+                Cache::tags(['products'])->flush();
+                return;
+            } catch (\Exception $e) {
+                // Si falla el tagging, continuar con el método manual
+            }
+        }
+        
+        // Método manual para drivers sin soporte de tagging
         $commonFilters = [
             'products_filtered_default',
             'products_filtered_' . md5(''),
@@ -505,6 +593,26 @@ class ProductController extends Controller
         
         foreach ($commonFilters as $key) {
             Cache::forget($key);
+        }
+    }
+    
+    /**
+     * Convierte parámetros directos como ?name=valor a formato filter[campo]=valor
+     * para mayor flexibilidad en la API
+     */
+    private function convertDirectParamsToFilters(Request $request)
+    {
+        $directParams = ['name', 'price', 'min_price', 'max_price', 'in_stock'];
+        $currentFilters = $request->input('filter', []);
+        
+        foreach ($directParams as $param) {
+            if ($request->has($param) && !isset($currentFilters[$param])) {
+                $currentFilters[$param] = $request->input($param);
+            }
+        }
+        
+        if (!empty($currentFilters)) {
+            $request->merge(['filter' => $currentFilters]);
         }
     }
 }

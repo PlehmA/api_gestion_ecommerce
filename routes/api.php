@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AddressController;
 
 // Rutas de autenticación (públicas)
 Route::post('/register', [AuthController::class, 'register']);
@@ -15,6 +16,9 @@ Route::get('/products/{id}', [ProductController::class, 'show']);
 
 // TEMPORAL: Ruta pública para testing - MOVER A RUTAS PROTEGIDAS EN PRODUCCIÓN
 Route::post('/products', [ProductController::class, 'store']);
+
+// TEMPORAL: Ruta de debug para órdenes - ELIMINAR EN PRODUCCIÓN
+Route::get('/orders/debug', [OrderController::class, 'debugOrders']);
 
 // Rutas protegidas (requieren autenticación)
 Route::middleware('auth:sanctum')->group(function () {
@@ -30,6 +34,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Productos SoftDelete adicionales
     Route::post('/products/{id}/restore', [ProductController::class, 'restore']);
     Route::delete('/products/{id}/force', [ProductController::class, 'forceDelete']);
+    
+    // Direcciones del usuario
+    Route::resource('addresses', AddressController::class);
     
     // Órdenes
     Route::get('/orders', [OrderController::class, 'index']);
