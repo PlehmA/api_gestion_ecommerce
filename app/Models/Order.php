@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Model;
  *     @OA\Property(property="status", type="string"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time"),
- *     @OA\Property(property="products", type="array", @OA\Items(ref="#/components/schemas/Product")),
+ *     @OA\Property(property="products", type="array", @OA\Items(ref="#/components/schemas/ProductDetail")),
  *     @OA\Property(property="user", ref="#/components/schemas/User"),
  *     @OA\Property(property="address", ref="#/components/schemas/Address"),
  *     @OA\Property(property="invoice", ref="#/components/schemas/Invoice")
@@ -54,5 +54,26 @@ class Order extends Model
     public function products()
     {
         return $this->belongsToMany(Product::class, 'order_products')->withPivot('quantity', 'price');
+    }
+
+    // Scopes para filtros personalizados
+    public function scopeMinTotal($query, $minTotal)
+    {
+        return $query->where('total', '>=', $minTotal);
+    }
+
+    public function scopeMaxTotal($query, $maxTotal)
+    {
+        return $query->where('total', '<=', $maxTotal);
+    }
+
+    public function scopeDateFrom($query, $dateFrom)
+    {
+        return $query->whereDate('created_at', '>=', $dateFrom);
+    }
+
+    public function scopeDateTo($query, $dateTo)
+    {
+        return $query->whereDate('created_at', '<=', $dateTo);
     }
 }

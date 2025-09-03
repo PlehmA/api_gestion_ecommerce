@@ -3,8 +3,8 @@
 /**
  * @OA\Info(
  *     title="API Gestión E-commerce",
- *     version="1.0",
- *     description="API para gestión de órdenes de venta de un e-commerce.",
+ *     version="2.0",
+ *     description="API para gestión de órdenes de venta y productos de un e-commerce. Incluye funcionalidades CRUD completas con SoftDelete para productos y filtrado avanzado con Spatie Query Builder.",
  *     @OA\Contact(
  *         email="admin@ecommerce.com",
  *         name="API Support"
@@ -17,8 +17,18 @@
  * )
  * 
  * @OA\Tag(
+ *     name="Authentication",
+ *     description="Operaciones de autenticación y autorización"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Products",
+ *     description="Operaciones CRUD sobre productos con SoftDelete. Incluye creación, actualización, eliminación lógica, restauración y eliminación permanente. También soporta filtrado avanzado y paginación."
+ * )
+ * 
+ * @OA\Tag(
  *     name="Orders",
- *     description="Operaciones sobre órdenes de venta"
+ *     description="Operaciones sobre órdenes de venta con filtrado por usuario"
  * )
  * 
  * @OA\SecurityScheme(

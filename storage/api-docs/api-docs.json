@@ -241,18 +241,104 @@
                 "tags": [
                     "Orders"
                 ],
-                "summary": "Obtener órdenes del usuario autenticado",
+                "summary": "Obtener órdenes del usuario autenticado con filtros y paginación",
                 "operationId": "2cd7e03021e72d9d799c12dfe179c865",
+                "parameters": [
+                    {
+                        "name": "filter[status]",
+                        "in": "query",
+                        "description": "Filtrar por estado",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "processing",
+                                "shipped",
+                                "delivered",
+                                "cancelled"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[min_total]",
+                        "in": "query",
+                        "description": "Total mínimo",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "filter[max_total]",
+                        "in": "query",
+                        "description": "Total máximo",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "filter[date_from]",
+                        "in": "query",
+                        "description": "Fecha desde",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "filter[date_to]",
+                        "in": "query",
+                        "description": "Fecha hasta",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Ordenar por campo (ej: -created_at, total, status)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Elementos por página (máximo 50)",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Lista de órdenes",
+                        "description": "Lista paginada de órdenes",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/Order"
-                                    }
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Order"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -414,23 +500,196 @@
                 "tags": [
                     "Products"
                 ],
-                "summary": "Obtener lista de productos",
+                "summary": "Obtener lista de productos con filtros y paginación avanzada",
+                "description": "Lista todos los productos activos (no eliminados) con capacidades de filtrado, ordenamiento y paginación usando Spatie Query Builder. Soporta cache inteligente para mejor rendimiento.",
                 "operationId": "1bfaa78d1c2c3848ab8165c5dadcad3e",
+                "parameters": [
+                    {
+                        "name": "filter[name]",
+                        "in": "query",
+                        "description": "Filtrar por nombre (búsqueda parcial, insensible a mayúsculas)",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "iPhone"
+                    },
+                    {
+                        "name": "filter[price]",
+                        "in": "query",
+                        "description": "Filtrar por precio exacto",
+                        "schema": {
+                            "type": "number",
+                            "format": "float"
+                        },
+                        "example": 999.99
+                    },
+                    {
+                        "name": "filter[min_price]",
+                        "in": "query",
+                        "description": "Precio mínimo (incluye el valor especificado)",
+                        "schema": {
+                            "type": "number",
+                            "format": "float"
+                        },
+                        "example": 500
+                    },
+                    {
+                        "name": "filter[max_price]",
+                        "in": "query",
+                        "description": "Precio máximo (incluye el valor especificado)",
+                        "schema": {
+                            "type": "number",
+                            "format": "float"
+                        },
+                        "example": 2000
+                    },
+                    {
+                        "name": "filter[in_stock]",
+                        "in": "query",
+                        "description": "Solo productos con stock disponible (1 para verdadero, 0 para falso)",
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Campo de ordenamiento. Usar '-' al inicio para orden descendente",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "name",
+                                "-name",
+                                "price",
+                                "-price",
+                                "stock",
+                                "-stock",
+                                "created_at",
+                                "-created_at"
+                            ]
+                        },
+                        "example": "-price"
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página para paginación",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Número de productos por página (máximo 100)",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        },
+                        "example": 15
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Lista de productos",
+                        "description": "Lista de productos con paginación",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/Product"
-                                    }
+                                    "$ref": "#/components/schemas/ProductPaginated"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación en parámetros de consulta",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
                                 }
                             }
                         }
                     }
                 }
+            },
+            "post": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Crear un nuevo producto",
+                "description": "Crea un nuevo producto en el catálogo. Requiere autenticación. El nombre debe ser único entre productos activos (ignora productos eliminados). Invalida automáticamente el cache de productos.",
+                "operationId": "e8185e307706e2cd84bbcf5171e2f09d",
+                "requestBody": {
+                    "description": "Datos del producto a crear",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProductStore"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Producto creado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Producto creado exitosamente"
+                                        },
+                                        "product": {
+                                            "$ref": "#/components/schemas/ProductDetail"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
             }
         },
         "/api/products/{id}": {
@@ -438,35 +697,655 @@
                 "tags": [
                     "Products"
                 ],
-                "summary": "Obtener detalle de un producto",
+                "summary": "Obtener detalle de un producto específico",
+                "description": "Obtiene la información completa de un producto por su ID. Utiliza cache por 10 minutos para mejor rendimiento. Solo muestra productos activos (no eliminados lógicamente).",
                 "operationId": "7ab21ddb713501f3d4c2914892c02a21",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
+                        "description": "ID único del producto a consultar",
                         "required": true,
                         "schema": {
-                            "type": "integer"
-                        }
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Detalle del producto",
+                        "description": "Información detallada del producto",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/Product"
+                                    "$ref": "#/components/schemas/ProductDetail"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Producto no encontrado o ha sido eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No query results for model [App\\\\Models\\\\Product] 1"
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
                     }
                 }
+            },
+            "put": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Actualizar un producto existente",
+                "description": "Actualiza la información de un producto específico. Requiere autenticación. Solo se pueden actualizar productos activos. La validación de nombre único ignora el producto actual. Invalida automáticamente el cache.",
+                "operationId": "6a7e11900844cd85cff66e662b82bd4c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID único del producto a actualizar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "requestBody": {
+                    "description": "Datos del producto a actualizar (todos los campos son opcionales)",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProductUpdate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Producto actualizado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Producto actualizado exitosamente"
+                                        },
+                                        "product": {
+                                            "$ref": "#/components/schemas/ProductDetail"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Producto no encontrado o eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No query results for model [App\\\\Models\\\\Product] 1"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Eliminar un producto (eliminación lógica)",
+                "description": "Realiza una eliminación lógica (soft delete) del producto. El producto no se elimina físicamente de la base de datos, sino que se marca como eliminado. Requiere autenticación. Invalida automáticamente el cache.",
+                "operationId": "e80a6ca46716acee6b47ea1ac91663c0",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID único del producto a eliminar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Producto eliminado exitosamente (soft delete)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Producto eliminado exitosamente"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "El producto ya está eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "El producto ya está eliminado. Use la ruta de restauración si desea recuperarlo."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Producto no encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No query results for model [App\\\\Models\\\\Product] 1"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/products/{id}/restore": {
+            "post": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Restaurar un producto eliminado lógicamente",
+                "description": "Restaura un producto que fue eliminado mediante soft delete. El producto vuelve a estar disponible para consultas normales. Requiere autenticación. Solo funciona con productos que han sido eliminados lógicamente. Invalida automáticamente el cache.",
+                "operationId": "cac6708948b75b3fcc612aed6626824c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID único del producto eliminado que se desea restaurar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Producto restaurado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Producto restaurado exitosamente"
+                                        },
+                                        "product": {
+                                            "$ref": "#/components/schemas/ProductDetail"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Producto no encontrado o no está eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No query results for model [App\\\\Models\\\\Product] 1"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/products/{id}/force": {
+            "delete": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Eliminar permanentemente un producto",
+                "description": "Elimina un producto de forma permanente de la base de datos. Esta acción es irreversible. Requiere autenticación. Solo funciona con productos que ya han sido eliminados lógicamente (soft deleted). Invalida automáticamente el cache.",
+                "operationId": "3c95bd58069e5b3d7356552bc209e53a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID único del producto eliminado lógicamente que se desea eliminar permanentemente",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Producto eliminado permanentemente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Producto eliminado permanentemente"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Producto no encontrado o no está eliminado lógicamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No query results for model [App\\\\Models\\\\Product] 1"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
             }
         }
     },
     "components": {
         "schemas": {
+            "ProductDetail": {
+                "title": "Product Detail",
+                "description": "Modelo detallado de producto del e-commerce",
+                "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "price",
+                    "stock"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único del producto",
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "name": {
+                        "description": "Nombre del producto",
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "iPhone 15 Pro"
+                    },
+                    "description": {
+                        "description": "Descripción detallada del producto",
+                        "type": "string",
+                        "example": "Último modelo de iPhone con chip A17 Pro"
+                    },
+                    "price": {
+                        "description": "Precio del producto en USD",
+                        "type": "number",
+                        "format": "float",
+                        "minimum": 0.01,
+                        "example": 1199.99
+                    },
+                    "stock": {
+                        "description": "Cantidad disponible en inventario",
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 50
+                    },
+                    "created_at": {
+                        "description": "Fecha y hora de creación",
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-01T00:00:00.000000Z"
+                    },
+                    "updated_at": {
+                        "description": "Fecha y hora de última actualización",
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-01T12:30:45.000000Z"
+                    },
+                    "deleted_at": {
+                        "description": "Fecha y hora de eliminación lógica (null si está activo)",
+                        "type": "string",
+                        "format": "date-time",
+                        "example": null,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ProductStore": {
+                "title": "Product Store Request",
+                "description": "Datos requeridos para crear un nuevo producto",
+                "required": [
+                    "name",
+                    "description",
+                    "price",
+                    "stock"
+                ],
+                "properties": {
+                    "name": {
+                        "description": "Nombre único del producto",
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "MacBook Pro M3"
+                    },
+                    "description": {
+                        "description": "Descripción detallada del producto",
+                        "type": "string",
+                        "example": "Laptop profesional con chip M3 y pantalla Retina"
+                    },
+                    "price": {
+                        "description": "Precio del producto",
+                        "type": "number",
+                        "format": "float",
+                        "minimum": 0.01,
+                        "example": 2499.99
+                    },
+                    "stock": {
+                        "description": "Cantidad inicial en inventario",
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 25
+                    }
+                },
+                "type": "object"
+            },
+            "ProductUpdate": {
+                "title": "Product Update Request",
+                "description": "Datos para actualizar un producto existente",
+                "properties": {
+                    "name": {
+                        "description": "Nuevo nombre del producto (opcional)",
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "MacBook Pro M3 Actualizado"
+                    },
+                    "description": {
+                        "description": "Nueva descripción del producto (opcional)",
+                        "type": "string",
+                        "example": "Laptop profesional actualizada con mejor rendimiento"
+                    },
+                    "price": {
+                        "description": "Nuevo precio del producto (opcional)",
+                        "type": "number",
+                        "format": "float",
+                        "minimum": 0.01,
+                        "example": 2299.99
+                    },
+                    "stock": {
+                        "description": "Nueva cantidad en inventario (opcional)",
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 15
+                    }
+                },
+                "type": "object"
+            },
+            "ProductPaginated": {
+                "title": "Products Paginated Response",
+                "description": "Respuesta paginada de productos con filtros",
+                "properties": {
+                    "data": {
+                        "description": "Lista de productos",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProductDetail"
+                        }
+                    },
+                    "links": {
+                        "description": "Enlaces de paginación",
+                        "properties": {
+                            "first": {
+                                "type": "string",
+                                "example": "http://localhost:8000/api/products?page=1"
+                            },
+                            "last": {
+                                "type": "string",
+                                "example": "http://localhost:8000/api/products?page=10"
+                            },
+                            "prev": {
+                                "type": "string",
+                                "example": null,
+                                "nullable": true
+                            },
+                            "next": {
+                                "type": "string",
+                                "example": "http://localhost:8000/api/products?page=2"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "meta": {
+                        "description": "Metadatos de paginación",
+                        "properties": {
+                            "current_page": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "from": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "last_page": {
+                                "type": "integer",
+                                "example": 10
+                            },
+                            "per_page": {
+                                "type": "integer",
+                                "example": 15
+                            },
+                            "to": {
+                                "type": "integer",
+                                "example": 15
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 150
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "ValidationError": {
+                "title": "Validation Error",
+                "description": "Error de validación con detalles específicos por campo",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "The given data was invalid."
+                    },
+                    "errors": {
+                        "description": "Errores de validación por campo",
+                        "properties": {
+                            "name": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "example": "The name field is required."
+                                }
+                            },
+                            "price": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "example": "The price must be at least 0.01."
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "ApiResponse": {
+                "title": "API Response",
+                "description": "Respuesta estándar de la API",
+                "properties": {
+                    "message": {
+                        "description": "Mensaje descriptivo de la operación",
+                        "type": "string",
+                        "example": "Producto creado exitosamente"
+                    }
+                },
+                "type": "object"
+            },
             "Address": {
                 "properties": {
                     "id": {
@@ -565,7 +1444,7 @@
                     "products": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/Product"
+                            "$ref": "#/components/schemas/ProductDetail"
                         }
                     },
                     "user": {
@@ -580,7 +1459,7 @@
                 },
                 "type": "object"
             },
-            "Product": {
+            "ProductModel": {
                 "properties": {
                     "id": {
                         "type": "integer"
@@ -605,6 +1484,11 @@
                     "updated_at": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "deleted_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
                     }
                 },
                 "type": "object"

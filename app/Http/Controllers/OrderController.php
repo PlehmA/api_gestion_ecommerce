@@ -8,6 +8,9 @@ use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Spatie\QueryBuilder\QueryBuilder;
+use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedSort;
 
 /**
  * @OA\Info(
@@ -22,22 +25,95 @@ class OrderController extends Controller
     /**
      * @OA\Get(
      *     path="/api/orders",
-     *     summary="Obtener órdenes del usuario autenticado",
+     *     summary="Obtener órdenes del usuario autenticado con filtros y paginación",
      *     tags={"Orders"},
      *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="filter[status]",
+     *         in="query",
+     *         description="Filtrar por estado",
+     *         @OA\Schema(type="string", enum={"pending", "processing", "shipped", "delivered", "cancelled"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="filter[min_total]",
+     *         in="query",
+     *         description="Total mínimo",
+     *         @OA\Schema(type="number")
+     *     ),
+     *     @OA\Parameter(
+     *         name="filter[max_total]",
+     *         in="query",
+     *         description="Total máximo",
+     *         @OA\Schema(type="number")
+     *     ),
+     *     @OA\Parameter(
+     *         name="filter[date_from]",
+     *         in="query",
+     *         description="Fecha desde",
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="filter[date_to]",
+     *         in="query",
+     *         description="Fecha hasta",
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sort",
+     *         in="query",
+     *         description="Ordenar por campo (ej: -created_at, total, status)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Número de página",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página (máximo 50)",
+     *         @OA\Schema(type="integer")
+     *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Lista de órdenes",
+     *         description="Lista paginada de órdenes",
      *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(ref="#/components/schemas/Order")
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Order")),
+     *             @OA\Property(property="links", type="object"),
+     *             @OA\Property(property="meta", type="object")
      *         )
      *     )
      * )
      */
-    public function index(Request $request, OrderService $orderService)
+    public function index(Request $request)
     {
-        $orders = $orderService->getUserOrders($request->user()->id);
+        // Crear cache key único basado en usuario y parámetros de consulta
+        $cacheKey = 'orders_user_' . $request->user()->id . '_' . md5($request->getQueryString() ?: 'default');
+        
+        $orders = Cache::remember($cacheKey, 300, function () use ($request) {
+            return QueryBuilder::for(Order::class)
+                ->where('user_id', $request->user()->id)
+                ->with(['products', 'address', 'invoice'])
+                ->allowedFilters([
+                    AllowedFilter::exact('status'),
+                    AllowedFilter::scope('min_total'),
+                    AllowedFilter::scope('max_total'),
+                    AllowedFilter::scope('date_from'),
+                    AllowedFilter::scope('date_to'),
+                ])
+                ->allowedSorts([
+                    'created_at',
+                    'total', 
+                    'status',
+                    'updated_at'
+                ])
+                ->defaultSort('-created_at')
+                ->paginate($request->get('per_page', 15))
+                ->withQueryString();
+        });
+        
         return response()->json($orders);
     }
 

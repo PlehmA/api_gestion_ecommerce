@@ -183,7 +183,16 @@ class AuthController extends Controller
      */
     public function logoutAll(Request $request)
     {
-        $request->user()->tokens()->delete();
+        // Obtener el usuario autenticado
+        $user = $request->user();
+        
+        // Eliminar todos los tokens del usuario de forma más directa
+        \Laravel\Sanctum\PersonalAccessToken::where('tokenable_id', $user->id)
+            ->where('tokenable_type', get_class($user))
+            ->delete();
+        
+        // Limpiar caché si existe
+        \Illuminate\Support\Facades\Cache::flush();
 
         return response()->json([
             'message' => 'Todas las sesiones cerradas exitosamente'
