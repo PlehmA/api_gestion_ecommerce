@@ -5,10 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Product extends Model
-{
-    use HasFactory;
-    /**
+/**
  * @OA\Schema(
  *     schema="Product",
  *     type="object",
@@ -21,6 +18,9 @@ class Product extends Model
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  */
+class Product extends Model
+{
+    use HasFactory;
 
     protected $fillable = [
         'name',

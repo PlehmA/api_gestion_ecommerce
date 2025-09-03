@@ -1,11 +1,4 @@
 <?php
-/**
- * @OA\Info(
- *     title="API Gestión E-commerce",
- *     version="1.0",
- *     description="API para gestión de órdenes de venta de un e-commerce."
- * )
- */
 
 namespace App\Http\Controllers;
 
@@ -15,6 +8,14 @@ use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+
+/**
+ * @OA\Info(
+ *     title="API Gestión E-commerce",
+ *     version="1.0.0",
+ *     description="API para gestión de órdenes de venta de un e-commerce"
+ * )
+ */
 
 class OrderController extends Controller
 {
