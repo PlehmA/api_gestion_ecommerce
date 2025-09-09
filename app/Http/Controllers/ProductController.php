@@ -477,7 +477,7 @@ class ProductController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'El producto no está eliminado, no se puede restaurar'
-            ], 400);
+            ], 404);
         }
         
         $product->restore();
@@ -550,7 +550,7 @@ class ProductController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'No se puede eliminar permanentemente un producto activo. Primero debe eliminarlo lógicamente.'
-            ], 400);
+            ], 404);
         }
         
         $product->forceDelete(); // Eliminar permanentemente

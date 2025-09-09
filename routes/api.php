@@ -14,9 +14,6 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 
-// TEMPORAL: Ruta pública para testing - MOVER A RUTAS PROTEGIDAS EN PRODUCCIÓN
-Route::post('/products', [ProductController::class, 'store']);
-
 // TEMPORAL: Ruta de debug para órdenes - ELIMINAR EN PRODUCCIÓN
 Route::get('/orders/debug', [OrderController::class, 'debugOrders']);
 
@@ -27,7 +24,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/logout-all', [AuthController::class, 'logoutAll']);
     
-    // Productos CRUD (sin store que ya está arriba temporalmente)
+    // Productos CRUD completo
+    Route::post('/products', [ProductController::class, 'store']);
     Route::put('/products/{id}', [ProductController::class, 'update']);
     Route::delete('/products/{id}', [ProductController::class, 'destroy']);
     
